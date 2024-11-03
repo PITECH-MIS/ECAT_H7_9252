@@ -1,0 +1,16 @@
+{
+    "cortex-debug.armToolchainPath": "C:\\arm-gnu-toolchain\\bin",
+    "cortex-debug.openocdPath": "C:\\OPENOCD\\BIN\\OPENOCD.EXE",
+    "cortex-debug.variableUseNaturalFormat": true,
+    "files.associations": {
+        "esc.h": "c",
+        "ecat_options.h": "c",
+        "cc.h": "c",
+        "utypes.h": "c",
+        "esc_coe.h": "c",
+        "type_traits": "c",
+        "kfifo.h": "c",
+        "cstdint": "cpp"
+    },
+    "cmake.ignoreCMakeListsMissing": true
+}
