@@ -31,14 +31,14 @@ public:
     bool OnIdleIRQ(UART_HandleTypeDef *_huart, uint16_t Size);
     // uint32_t GetRxLen() {return kfifo_used_s(&rx_fifo);};
     void PutTxFifo(char *src, uint32_t len);
-    // uint32_t GetTxFifoLen()
-    // {
-    //     return kfifo_used_s(&tx_fifo);
-    // }
-    // void FlushTxFifo()
-    // {
-    //     kfifo_flush_s(&tx_fifo);
-    // }
+    uint32_t GetTxFifoLen()
+    {
+        return kfifo_used_s(&tx_fifo);
+    }
+    void FlushTxFifo()
+    {
+        kfifo_flush_s(&tx_fifo);
+    }
     void GetRxFifo(char *dst, uint32_t len);
     void Transmit(); // DMA transmit from tx_fifo
     void TransmitBlocking(uint8_t *buf, uint32_t len);
@@ -46,22 +46,21 @@ public:
     void print(uint8_t transmit, const char *fmt, ...);
     void RegisterCallback(uart_rx_cb func) {rx_cb = func;};
     bool ProcessCmd();
-    Parser parser;
+    // Parser parser;
     char tx_buffer[TX_BUFFER_SIZE];
     uint8_t rx_buffer[RX_BUFFER_SIZE];
     // kfifo_static_t rx_fifo;
-    uint16_t tx_len = 0;
-private:
     UART_HandleTypeDef *huart;
+private:
     
-    // kfifo_static_t tx_fifo;
+    kfifo_static_t tx_fifo;
     uint16_t rx_stack_size = RX_BUFFER_SIZE;
     // uint16_t rx_buf_pos = 0;
     // uint16_t rx_length = 0;
     // uint8_t rx_finished_sem = 0; // 0 indicates no income message is unhandled
-    char cmd_buffer[16];
-    float arg_buffer[16];
-    uint8_t arg_len = 0;
+    // char cmd_buffer[16];
+    // float arg_buffer[16];
+    // uint8_t arg_len = 0;
     uart_rx_cb rx_cb = nullptr;
 };
 
@@ -78,7 +77,7 @@ void UART::print(uint8_t transmit, const char *fmt, ...)
 void UART::Init()
 {
     // kfifo_init_s(&rx_fifo, KFIFO_STATIC_BUF_SIZE);
-    // kfifo_init_s(&tx_fifo, KFIFO_STATIC_BUF_SIZE);
+    kfifo_init_s(&tx_fifo, KFIFO_STATIC_BUF_SIZE);
     HAL_UART_AbortReceive(huart);
     // HAL_UARTEx_ReceiveToIdle_DMA(huart, rx_buffer, rx_stack_size);
 
@@ -137,7 +136,7 @@ bool UART::ProcessCmd()
 
 void UART::PutTxFifo(char *src, uint32_t len)
 {
-    // kfifo_put_s(&tx_fifo, src, len);
+    kfifo_put_s(&tx_fifo, src, len);
 }
 
 void UART::GetRxFifo(char *dst, uint32_t len)
@@ -148,9 +147,9 @@ void UART::GetRxFifo(char *dst, uint32_t len)
 void UART::Transmit()
 {
     // while(huart->hdmatx->State == HAL_DMA_STATE_BUSY);
-    // uint16_t len = kfifo_used_s(&tx_fifo);
-    // kfifo_get_s(&tx_fifo, tx_buffer, len);
-    uint16_t len = tx_len;
+    uint16_t len = kfifo_used_s(&tx_fifo);
+    kfifo_get_s(&tx_fifo, tx_buffer, len);
+    // uint16_t len = tx_len;
     // HAL_DMA_Abort(huart->hdmatx);
     HAL_UART_DMAStop(huart);
     HAL_UART_Transmit_DMA(huart, (const uint8_t*)tx_buffer, len);

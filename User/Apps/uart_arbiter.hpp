@@ -8,7 +8,7 @@
 class UARTArbiter
 {
 public:
-    UARTArbiter() {};
+    UARTArbiter() = default;
     UARTProtocol protocols[PROTOCOL_COUNT];
     UART *instances[PROTOCOL_COUNT];
     void OnRxEvent(UART* uart, uint8_t *buffer, uint16_t len);
@@ -16,44 +16,41 @@ public:
 
 void UARTArbiter::OnRxEvent(UART* uart, uint8_t *buffer, uint16_t len)
 {
-    uint16_t max_packet_count = (len / sizeof(UARTProtocol::rx_buffer));
-    while(max_packet_count--)
+    if(len < sizeof(UARTProtocol::state_buffer)) return;
+    uint16_t start_ptr = 0;
+    while(start_ptr < len)
     {
-        while(len)
+        // Start by directly check header & slot.
+        if(*(buffer + start_ptr) == MOTOR_STATE_HEADER ||
+           *(buffer + start_ptr) == PAYLOAD_HEADER)
         {
-            if(*buffer == (uint8_t)uart_buffer_t<RX_STRUCT_NAME>::Type::MOTOR || 
-            *buffer == (uint8_t)uart_buffer_t<RX_STRUCT_NAME>::Type::PAYLOAD) break;
-            buffer++;
-            len--;
-        }
-        if(len == 0) return;
-        auto *ptr = (decltype(UARTProtocol::rx_buffer)*)buffer;
-        if((*ptr).isValid())
-        {
-            auto target_SN = (*ptr).getPayload()->SN;
-            uint16_t slot = target_SN % PROTOCOL_COUNT;
-            auto slot_SN = protocols[slot].rx_buffer.getPayload()->SN;
-            if(slot_SN != 0 && (slot_SN != target_SN && protocols[slot].IsRemoteAlive())) // slot conflict
+            if(len - start_ptr >= sizeof(UARTProtocol::state_buffer))
             {
-                for(uint16_t t = 0; t <= PROTOCOL_COUNT; t++)
+                auto x = (decltype(UARTProtocol::state_buffer)*)(buffer + start_ptr);
+                uint16_t slot = x->state()->SN % PROTOCOL_COUNT;
+                uint32_t slot_SN = protocols[slot].state_buffer.state()->SN;
+                if(slot_SN != 0 && (slot_SN != x->state()->SN && protocols[slot].IsAlive())) // slot conflict
                 {
-                    if(t == slot) continue;
-                    slot = t;
-                    slot_SN = protocols[slot].rx_buffer.getPayload()->SN;
-                    if( slot_SN == 0 ||                   // empty slot
-                        slot_SN == target_SN ||           // matched slot
-                        !protocols[slot].IsRemoteAlive()  // dead device
-                    )
-                    break;
+                    for(uint16_t t = 0; t <= PROTOCOL_COUNT; t++)
+                    {
+                        if(t == slot) continue;
+                        slot = t;
+                        slot_SN = protocols[slot].state_buffer.state()->SN;
+                        if(slot_SN == 0 || slot_SN == x->state()->SN || !protocols[slot].IsAlive()) break;
+                    }
+                    if(slot >= PROTOCOL_COUNT) continue;
                 }
-                if(slot >= PROTOCOL_COUNT) continue; // no valid slot
+                if(protocols[slot].ReceiveStateBuf((char*)(buffer + start_ptr), sizeof(UARTProtocol::state_buffer)))
+                {
+                    instances[slot] = uart;
+                }
+                start_ptr += sizeof(UARTProtocol::state_buffer);
             }
-            instances[slot] = uart;
-            protocols[slot].target_sn = target_SN;
-            protocols[slot].OnRxBuffer((char*)buffer, len);
-            len -= sizeof(UARTProtocol::rx_buffer);
+            else break;
         }
+        else start_ptr++;
     }
+
     // if(len % sizeof(UARTProtocol::state_buffer) == 0)
     // {
     //     for(uint16_t i = 0; i < (len / sizeof(UARTProtocol::state_buffer)); i++)

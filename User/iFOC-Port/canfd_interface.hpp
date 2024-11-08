@@ -1,13 +1,17 @@
 #ifndef _STM32_CANFD_INTERFACE_HPP
 #define _STM32_CANFD_INTERFACE_HPP
 
-#include "can_protocol.hpp"
+#include "can_base.h"
 #include "global_include.h"
+
+uint8_t GetCANNodeID(uint32_t id) { return (uint8_t)((id & 0x7E0) >> 5); };
+uint8_t GetCANCmdID(uint32_t id) { return (uint8_t)(id & 0x1F); };
+uint16_t GetCANFrameID(uint8_t node_id, uint16_t id) { return (uint16_t)((uint16_t)node_id << 5) | id; };
 
 class STM32CANFD : public CANBase
 {
 public:
-    STM32CANFD(FDCAN_HandleTypeDef *_hcan) : hcan(_hcan) {};
+    explicit STM32CANFD(FDCAN_HandleTypeDef *_hcan) : hcan(_hcan) {};
     void ConfigFilter(uint32_t id, uint32_t mask, uint8_t fifo_index, uint8_t filter_index) override;
     void InitHW() override;
     void SendPayload(uint32_t id, uint8_t *payload, uint8_t len) override;
@@ -69,11 +73,11 @@ void STM32CANFD::OnIRQ(uint32_t fifo_index, instances&... args)
 template<class T>
 void STM32CANFD::_irq(T instance, uint8_t& id, FDCAN_RxHeaderTypeDef& rx_header)
 {
-    if(id == instance.GetNodeID() || id == 0x3F)
-    {
+//    if(id == instance.GetNodeID() || id == 0x3F)
+//    {
         if(rx_header.RxFrameType == FDCAN_DATA_FRAME) instance.OnDataFrame(rx_header.Identifier, rx_buffer, rx_header.DataLength);
         else instance.OnRemoteFrame(rx_header.Identifier);
-    }
+//    }
 }
 
 #endif

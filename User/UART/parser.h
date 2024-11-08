@@ -19,6 +19,7 @@ public:
     Parser();
     bool Register(char *_name, void (*_cb)(char *name, float *argv, uint16_t arg_len), float *_target);
     bool Parse(char *str, float *argv, uint16_t arg_len);
+    bool ParseRaw(char* payload, uint16_t len);
 private:
     const uint32_t P = 131;
     cmd_t cmd_list[COMMAND_COUNT];

@@ -54,6 +54,7 @@ public:
     bool SendPayload(char *payload, uint8_t len);
     void RegisterRxPayloadCallback(payload_result_cb cb) { _new_payload_cb = cb; };
     void Reset();
+    bool print(const char *fmt, ...);
 private:
     pdo_protocol_buf_t tx_buf;
     pdo_protocol_buf_t rx_buf;
@@ -95,6 +96,15 @@ void PDOSlaveProtocol::Reset()
     memset(&rx_buf, 0, sizeof(rx_buf));
     memset(Obj.TxBuf, 0, sizeof(Obj.TxBuf));
     memset(Obj.RxBuf, 0, sizeof(Obj.RxBuf));
+}
+
+bool PDOSlaveProtocol::print(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    char buffer[sizeof(tx_buf.payload)];
+    auto buffer_len = (uint8_t)vsnprintf(buffer, sizeof(buffer), fmt, args);
+    return SendPayload(buffer, buffer_len);
 }
 
 #endif

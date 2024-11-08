@@ -78,6 +78,9 @@ file(GLOB_RECURSE headers User/*.h User/*.hpp)
 HEADER_DIRECTORIES(header_dir_list)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${header_dir_list})
 
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+        COMMAND arm-none-eabi-size --format=berkeley "${CMAKE_PROJECT_NAME}.elf")
+
 # Override default linker script
 set(CMAKE_C_LINK_FLAGS "${TARGET_FLAGS}")
 set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -T \"${CMAKE_SOURCE_DIR}/STM32H750VBTx_FLASH_Modified.ld\"")

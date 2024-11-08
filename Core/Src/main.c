@@ -251,6 +251,7 @@ void SystemClock_Config(void)
 void PeriphCommonClock_Config(void)
 {
   LL_RCC_PLL2P_Enable();
+  LL_RCC_PLL2Q_Enable();
   LL_RCC_PLL2_SetVCOInputRange(LL_RCC_PLLINPUTRANGE_8_16);
   LL_RCC_PLL2_SetVCOOutputRange(LL_RCC_PLLVCORANGE_WIDE);
   LL_RCC_PLL2_SetM(1);

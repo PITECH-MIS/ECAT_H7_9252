@@ -1,4 +1,6 @@
+#include <cstring>
 #include "parser.h"
+#include "utils.h"
 Parser::Parser()
 {
     for(auto &cmd : cmd_list)
@@ -78,4 +80,15 @@ bool Parser::Parse(char *str, float *argv, uint16_t arg_len)
         return true;
     }
     return false;
+}
+
+bool Parser::ParseRaw(char *payload, uint16_t len)
+{
+    char cmd_buffer[16];
+    float arg_buffer[16];
+    uint8_t arg_len = 0;
+    len = strlen(payload);
+    getCommand(payload, len, cmd_buffer);
+    splitData_f(payload, len, arg_buffer, &arg_len, ' ');
+    return Parse(cmd_buffer, arg_buffer, arg_len);
 }
