@@ -1,9 +1,10 @@
 #ifndef _PDO_SLAVE_PROTOCOL_HPP
 #define _PDO_SLAVE_PROTOCOL_HPP
 
-#include "stdint.h"
+#include <cstdint>
 #include "utils.h"
-#include "string.h"
+#include <cstring>
+#include "kfifo.h"
 #include "ethercat_wrapper.hpp"
 
 #define BUFFER_LEN 48
@@ -49,7 +50,10 @@ typedef void (*payload_result_cb)(char *payload, uint8_t len);
 class PDOSlaveProtocol
 {
 public:
-    PDOSlaveProtocol() {};
+    PDOSlaveProtocol()
+    {
+        kfifo_init_s(&tx_fifo, KFIFO_STATIC_BUF_SIZE);
+    };
     void onPDOLoop();
     bool SendPayload(char *payload, uint8_t len);
     void RegisterRxPayloadCallback(payload_result_cb cb) { _new_payload_cb = cb; };
@@ -58,17 +62,30 @@ public:
 private:
     pdo_protocol_buf_t tx_buf;
     pdo_protocol_buf_t rx_buf;
+    kfifo_static_t tx_fifo;
     payload_result_cb _new_payload_cb = nullptr;
 };
 
 void PDOSlaveProtocol::onPDOLoop()
 {
     auto *ptr = (pdo_protocol_buf_t*)Obj.TxBuf;
-    if(*ptr != tx_buf && tx_buf.isValid())
+    auto fifo_len = kfifo_used_s(&tx_fifo);
+    if(fifo_len > 0)
     {
-        // printf("Sending Tx Payload\n");
+        if(fifo_len > sizeof(tx_buf.payload)) fifo_len = sizeof(tx_buf.payload);
+        char buffer[sizeof(tx_buf.payload)];
+        kfifo_get_s(&tx_fifo, buffer, fifo_len);
+        tx_buf.packet_id++;
+        memset(tx_buf.payload, 0, sizeof(tx_buf.payload));
+        memcpy(tx_buf.payload, buffer, fifo_len);
+        tx_buf.prepare();
         memcpy(Obj.TxBuf, &tx_buf, sizeof(tx_buf));
     }
+    // if(*ptr != tx_buf && tx_buf.isValid())
+    // {
+    //     // printf("Sending Tx Payload\n");
+    //     memcpy(Obj.TxBuf, &tx_buf, sizeof(tx_buf));
+    // }
     ptr = (pdo_protocol_buf_t*)Obj.RxBuf;
     if(*ptr != rx_buf && (*ptr).isValid())
     {
@@ -80,13 +97,14 @@ void PDOSlaveProtocol::onPDOLoop()
 
 bool PDOSlaveProtocol::SendPayload(char *payload, uint8_t len)
 {
-    auto *ptr = (pdo_protocol_buf_t*)Obj.TxBuf;
-    if(*ptr != tx_buf && tx_buf.isValid()) return false; // THERE IS ONGOING PAYLOAD THAT HASN'T BEEN TRANSMITTED
-    if(len > sizeof(tx_buf.payload)) len = sizeof(tx_buf.payload);
-    tx_buf.packet_id++;
-    memset(tx_buf.payload, 0, sizeof(tx_buf.payload));
-    memcpy(tx_buf.payload, payload, len);
-    tx_buf.prepare();
+    // auto *ptr = (pdo_protocol_buf_t*)Obj.TxBuf;
+    // if(*ptr != tx_buf && tx_buf.isValid()) return false; // THERE IS ONGOING PAYLOAD THAT HASN'T BEEN TRANSMITTED
+    // if(len > sizeof(tx_buf.payload)) len = sizeof(tx_buf.payload);
+    // tx_buf.packet_id++;
+    // memset(tx_buf.payload, 0, sizeof(tx_buf.payload));
+    // memcpy(tx_buf.payload, payload, len);
+    // tx_buf.prepare();
+    kfifo_put_s(&tx_fifo, payload, strlen(payload));
     return true;
 }
 
