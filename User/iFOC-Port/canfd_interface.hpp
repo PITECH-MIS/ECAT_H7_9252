@@ -15,6 +15,7 @@ public:
     void ConfigFilter(uint32_t id, uint32_t mask, uint8_t fifo_index, uint8_t filter_index) override;
     void InitHW() override;
     void SendPayload(uint32_t id, uint8_t *payload, uint8_t len) override;
+    void SendRemoteFrame(uint32_t id);
     template<class ... instances>
     void OnIRQ(uint32_t fifo_index, instances&... args);
 private:
@@ -59,6 +60,21 @@ void STM32CANFD::SendPayload(uint32_t id, uint8_t *payload, uint8_t len)
     header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
     header.MessageMarker = 0;
     HAL_FDCAN_AddMessageToTxFifoQ(hcan, &header, payload);
+}
+
+void STM32CANFD::SendRemoteFrame(uint32_t id)
+{
+    FDCAN_TxHeaderTypeDef header;
+    header.IdType = FDCAN_STANDARD_ID;
+    header.Identifier = id;
+    header.TxFrameType = FDCAN_REMOTE_FRAME;
+    header.DataLength = 0;
+    header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+    header.BitRateSwitch = FDCAN_BRS_OFF;
+    header.FDFormat = FDCAN_CLASSIC_CAN;
+    header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+    header.MessageMarker = 0;
+    HAL_FDCAN_AddMessageToTxFifoQ(hcan, &header, nullptr);
 }
 
 template<class ... instances>
