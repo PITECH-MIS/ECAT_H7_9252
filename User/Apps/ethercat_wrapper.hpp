@@ -55,7 +55,7 @@ private:
     {
         .user_arg = NULL,
         .use_interrupt = 1,
-        .watchdog_cnt = 8192,
+        .watchdog_cnt = 100,
         .set_defaults_hook = NULL,
         .pre_state_change_hook = NULL,
         .post_state_change_hook = state_change_cb,
