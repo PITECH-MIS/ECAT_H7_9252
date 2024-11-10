@@ -49,7 +49,7 @@ public:
 #define UART_TIMEOUT_TICKS 500
 #define UART_KEEPALIVE_TICKS 100
 
-class state_buffer_t // upstream to Interface, no need SN
+class state_buffer_t // upstream to Interface, SN packed in payload
 {
 public:
     uint8_t header = 0;
@@ -116,7 +116,7 @@ public:
     bool requestedTx = false;
     void PrepareStateBuf(motor_state_t *state);
     void PrepareSetBuf(motor_set_t *set);
-    void PreparePayloadToStateBuf(char* payload, uint8_t len);
+    void PreparePayloadToStateBuf(char* payload, uint8_t len, uint32_t SN);
     void PreparePayloadToSetBuf(char* payload, uint8_t len);
     bool ReceiveStateBuf(char* buffer, uint16_t max_len);
     bool ReceiveSetBuf(char* buffer, uint16_t max_len, uint32_t SN);
@@ -142,7 +142,8 @@ bool UARTProtocol::ReceiveStateBuf(char* buffer, uint16_t max_len)
         memcpy(&state_buffer, buffer + ret, sizeof(state_buffer));
         if((*rx_state).header == PAYLOAD_HEADER)
         {
-            if(_payload_cb) _payload_cb(state_buffer.payload, sizeof(state_buffer.payload));
+            // memcpy(&_SN, (*rx_state).payload, sizeof(_SN));
+            if(_payload_cb) _payload_cb(state_buffer.payload + 4, sizeof(state_buffer.payload) - 4);
         }
         else _SN = (*rx_state).state()->SN;
         last_rx_tick = HAL_GetTick();
@@ -163,7 +164,7 @@ bool UARTProtocol::ReceiveSetBuf(char* buffer, uint16_t max_len, uint32_t SN)
            (*rx_set).getSN() == SN) break;
         ret++;
     }
-    if(ret + sizeof(set_buffer) >= max_len) return false;
+    if(ret + sizeof(set_buffer) > max_len) return false;
     if((*rx_set).isValid())
     {
         memcpy(&set_buffer, rx_set, sizeof(set_buffer));
@@ -207,12 +208,13 @@ void UARTProtocol::PrepareSetBuf(motor_set_t *set)
     requestedTx = true;
 }
 
-void UARTProtocol::PreparePayloadToStateBuf(char* payload, uint8_t len) // payload uniqueness is guaranteed by upstream protocol
+void UARTProtocol::PreparePayloadToStateBuf(char* payload, uint8_t len, uint32_t SN) // payload uniqueness is guaranteed by upstream protocol
 {
-    if(requestedTx) return;
-    if(len > sizeof(state_buffer.payload)) len = sizeof(state_buffer.payload);
+    // if(requestedTx) return;
+    if(len > sizeof(state_buffer.payload) - 4) len = sizeof(state_buffer.payload) - 4;
     memset(state_buffer.payload, 0, sizeof(state_buffer.payload));
-    memcpy(state_buffer.payload, payload, len);
+    memcpy(state_buffer.payload, &SN, sizeof(SN));
+    memcpy(state_buffer.payload + 4, payload, len);
     state_buffer.header = PAYLOAD_HEADER;
     state_buffer.prepare();
     last_tx_tick = HAL_GetTick();
@@ -221,7 +223,7 @@ void UARTProtocol::PreparePayloadToStateBuf(char* payload, uint8_t len) // paylo
 
 void UARTProtocol::PreparePayloadToSetBuf(char* payload, uint8_t len)
 {
-    if(requestedTx) return;
+    // if(requestedTx) return;
     if(_SN == 0) return;
     if(len > sizeof(set_buffer.payload)) len = sizeof(set_buffer.payload);
     memset(set_buffer.payload, 0, sizeof(set_buffer.payload));

@@ -20,27 +20,31 @@ void UARTArbiter::OnRxEvent(UART* uart, uint8_t *buffer, uint16_t len)
     uint16_t start_ptr = 0;
     while(start_ptr < len)
     {
+        auto p = buffer + start_ptr;
         // Start by directly check header & slot.
-        if(*(buffer + start_ptr) == MOTOR_STATE_HEADER ||
-           *(buffer + start_ptr) == PAYLOAD_HEADER)
+        if(*p == MOTOR_STATE_HEADER ||
+           *p == PAYLOAD_HEADER)
         {
             if(len - start_ptr >= sizeof(UARTProtocol::state_buffer))
             {
-                auto x = (decltype(UARTProtocol::state_buffer)*)(buffer + start_ptr);
-                uint16_t slot = x->state()->SN % PROTOCOL_COUNT;
+                auto x = (decltype(UARTProtocol::state_buffer)*)p;
+                uint32_t SN = 0;
+                if(*p == MOTOR_STATE_HEADER) SN = x->state()->SN;
+                else memcpy(&SN, x->payload, sizeof(SN));
+                uint16_t slot = SN % PROTOCOL_COUNT;
                 uint32_t slot_SN = protocols[slot].state_buffer.state()->SN;
-                if(slot_SN != 0 && (slot_SN != x->state()->SN && protocols[slot].IsAlive())) // slot conflict
+                if(slot_SN != 0 && (slot_SN != SN && protocols[slot].IsAlive())) // slot conflict
                 {
                     for(uint16_t t = 0; t <= PROTOCOL_COUNT; t++)
                     {
                         if(t == slot) continue;
                         slot = t;
                         slot_SN = protocols[slot].state_buffer.state()->SN;
-                        if(slot_SN == 0 || slot_SN == x->state()->SN || !protocols[slot].IsAlive()) break;
+                        if(slot_SN == 0 || slot_SN == SN || !protocols[slot].IsAlive()) break;
                     }
                     if(slot >= PROTOCOL_COUNT) continue;
                 }
-                if(protocols[slot].ReceiveStateBuf((char*)(buffer + start_ptr), sizeof(UARTProtocol::state_buffer)))
+                if(protocols[slot].ReceiveStateBuf((char*)p, sizeof(UARTProtocol::state_buffer)))
                 {
                     instances[slot] = uart;
                 }

@@ -88,6 +88,23 @@ void uart_8_rx_cb(uint16_t Size)
 {
     arbiter.OnRxEvent(&UART_8, UART_8.rx_buffer, Size);
 }
+void mx_pdo_payload_cb(uint8_t x, uint8_t *payload, uint8_t len)
+{
+    if(arbiter.protocols[x].IsAlive())
+    {
+        auto sn_trimmed = getLastFourDigits(arbiter.protocols[x]._SN);
+        pdo_protocol.print("Slave %d: ", sn_trimmed);
+        pdo_protocol.SendPayload((char*)payload, len);
+    }
+}
+inline void m1_pdo_payload_cb(uint8_t *payload, uint8_t len) { mx_pdo_payload_cb(0, payload, len); }
+inline void m2_pdo_payload_cb(uint8_t *payload, uint8_t len) { mx_pdo_payload_cb(1, payload, len); }
+inline void m3_pdo_payload_cb(uint8_t *payload, uint8_t len) { mx_pdo_payload_cb(2, payload, len); }
+inline void m4_pdo_payload_cb(uint8_t *payload, uint8_t len) { mx_pdo_payload_cb(3, payload, len); }
+inline void m5_pdo_payload_cb(uint8_t *payload, uint8_t len) { mx_pdo_payload_cb(4, payload, len); }
+inline void m6_pdo_payload_cb(uint8_t *payload, uint8_t len) { mx_pdo_payload_cb(5, payload, len); }
+inline void m7_pdo_payload_cb(uint8_t *payload, uint8_t len) { mx_pdo_payload_cb(6, payload, len); }
+inline void m8_pdo_payload_cb(uint8_t *payload, uint8_t len) { mx_pdo_payload_cb(7, payload, len); }
 
 void master_set_cb()
 {
@@ -104,6 +121,10 @@ void master_set_cb()
                 {
                     if(arbiter.instances[i]) arbiter.instances[i]->PutTxFifo((char*)&protocol.set_buffer, sizeof(protocol.set_buffer));
                 }
+            }
+            else if(protocol._SN != 0)
+            {
+                // Try to send payload using CAN interface
             }
             ptr++;
         }
@@ -189,6 +210,14 @@ void app_main()
     UART_6.RegisterCallback(uart_6_rx_cb);
     UART_7.RegisterCallback(uart_7_rx_cb);
     UART_8.RegisterCallback(uart_8_rx_cb);
+    arbiter.protocols[0]._payload_cb = m1_pdo_payload_cb;
+    arbiter.protocols[1]._payload_cb = m2_pdo_payload_cb;
+    arbiter.protocols[2]._payload_cb = m3_pdo_payload_cb;
+    arbiter.protocols[3]._payload_cb = m4_pdo_payload_cb;
+    arbiter.protocols[4]._payload_cb = m5_pdo_payload_cb;
+    arbiter.protocols[5]._payload_cb = m6_pdo_payload_cb;
+    arbiter.protocols[6]._payload_cb = m7_pdo_payload_cb;
+    arbiter.protocols[7]._payload_cb = m8_pdo_payload_cb;
     UART_1.Init();
     UART_2.Init();
     UART_3.Init(); 
