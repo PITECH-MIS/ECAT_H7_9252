@@ -39,7 +39,7 @@ void ESC_interrupt_disable(uint32_t mask)
     lan9252_write_32(ESC_INT_EN_REG, 0x00000000);  // Disable LAN9252 interrupt
 }
 
-void pdi_isr()
+void pdi_isr(void)
 {
     // CC_ATOMIC_SET(ESCvar.ALevent, ESC_ALeventread());
     ESC_read(ESCREG_LOCALTIME, (void *) &ESCvar.Time, sizeof (ESCvar.Time));
@@ -67,7 +67,7 @@ void pdi_isr()
     // }
 }
 
-void pdi_isr_background()
+void pdi_isr_background(void)
 {
     // if(ecat_isr_sem)
     // {
@@ -77,7 +77,7 @@ void pdi_isr_background()
     // }
 }
 
-void sync0_isr()
+void sync0_isr(void)
 {
     DIG_process(DIG_PROCESS_APP_HOOK_FLAG | DIG_PROCESS_INPUTS_FLAG);
 }

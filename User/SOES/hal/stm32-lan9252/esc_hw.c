@@ -14,7 +14,10 @@
 #include "bsp_spi.h"
 #include <string.h>
 
-
+// uint32_t m_cnt_error = 0;
+// uint32_t m_cnt_busy = 0;
+// uint32_t m_cnt_timeout = 0;
+// uint32_t m_cnt_ok = 0;
 
 #define O_RDWR 1
 
@@ -68,7 +71,7 @@
 #define ESC_READY                BIT(27)
 
 
-__unused static int lan9252 = -1;
+// __unused static int lan9252 = -1;
 
 /* lan9252 single write */
 void lan9252_write_32 (uint16_t address, uint32_t val)
@@ -83,12 +86,14 @@ void lan9252_write_32 (uint16_t address, uint32_t val)
     data[5] = ((val >> 16) & 0xFF);
     data[6] = ((val >> 24) & 0xFF);
 
+    disable_irq();
     /* Select device. */
-    spi_select (lan9252);
+    spi_select ();
     /* Write data */
     write (lan9252, data, sizeof(data));
     /* Un-select device. */
-    spi_unselect (lan9252);
+    spi_unselect ();
+    enable_irq();
 }
 
 /* lan9252 single read */
@@ -102,13 +107,15 @@ uint32_t lan9252_read_32 (uint32_t address)
    data[2] = (address & 0xFF);
    data[3] = ESC_CMD_FAST_READ_DUMMY;
 
+   disable_irq();
    /* Select device. */
-   spi_select (lan9252);
+   spi_select ();
    /* Read data */
    write (lan9252, data, sizeof(data));
    read (lan9252, result, sizeof(result));
    /* Un-select device. */
-   spi_unselect (lan9252);
+   spi_unselect ();
+   enable_irq();
 
    return ((result[3] << 24) |
            (result[2] << 16) |
@@ -193,13 +200,14 @@ static void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
    len -= temp_len;
    byte_offset += temp_len;
 
-   /* Select device. */
-   spi_select (lan9252);
-   /* Send command and address for fifo read */
    data[0] = ESC_CMD_FAST_READ;
    data[1] = ((ESC_PRAM_RD_FIFO_REG >> 8) & 0xFF);
    data[2] = (ESC_PRAM_RD_FIFO_REG & 0xFF);
    data[3] = ESC_CMD_FAST_READ_DUMMY;
+   disable_irq();
+   /* Select device. */
+   spi_select ();
+   /* Send command and address for fifo read */
    write (lan9252, data, sizeof(data));
 
    /* Continue reading until we have read len */
@@ -214,7 +222,8 @@ static void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
       byte_offset += temp_len;
    }
    /* Un-select device. */
-   spi_unselect (lan9252);
+   spi_unselect ();
+   enable_irq();
 }
 
 /* ESC write process data ram function */
@@ -261,13 +270,14 @@ static void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
    len -= temp_len;
    byte_offset += temp_len;
    fifo_cnt--;
-
-   /* Select device. */
-   spi_select (lan9252);
-   /* Send command and address for incrementing write */
    data[0] = ESC_CMD_SERIAL_WRITE;
    data[1] = ((ESC_PRAM_WR_FIFO_REG >> 8) & 0xFF);
    data[2] = (ESC_PRAM_WR_FIFO_REG & 0xFF);
+   disable_irq();
+   /* Select device. */
+   spi_select ();
+   /* Send command and address for incrementing write */
+
    write (lan9252, data, sizeof(data));
 
    /* Continue reading until we have read len */
@@ -284,7 +294,8 @@ static void ESC_write_csr (uint16_t address, void *buf, uint16_t len)
       byte_offset += temp_len;
    }
    /* Un-select device. */
-   spi_unselect (lan9252);
+   spi_unselect ();
+   enable_irq();
 }
 
 
