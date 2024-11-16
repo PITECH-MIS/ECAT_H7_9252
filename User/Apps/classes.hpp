@@ -39,6 +39,7 @@ Parser parser;
 void usb_rx_callback(uint8_t* Buf, uint32_t Len)
 {
     usb_shell.OnRxMsg(Buf, Len);
+    can_arbiter.Identify();
 }
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)

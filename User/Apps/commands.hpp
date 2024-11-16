@@ -56,13 +56,13 @@ void slave_cmd(char *name, float *argv, uint16_t arg_len)
     if(arg_len == 0) // print all available SNs (last 4 number)
     {
         char buffer[42] = {0};
-        auto ptr = (uint8_t)snprintf(buffer, sizeof(buffer), "Alive SN: ");
+        auto ptr = (uint8_t)snprintf(buffer, sizeof(buffer), "AliveSN:");
         for(uint8_t i = 0; i < PROTOCOL_COUNT; i++)
         {
             if(arbiter.protocols[i].IsAlive() && arbiter.instances[i])
             {
                 auto sn_trimmed = getLastFourDigits(arbiter.protocols[i]._SN);
-                ptr += (uint8_t)snprintf(buffer + ptr, sizeof(buffer) - ptr, "%d, ", sn_trimmed);
+                ptr += (uint8_t)snprintf(buffer + ptr, sizeof(buffer) - ptr, "%d,", sn_trimmed);
             }
         }
         pdo_protocol.SendPayload(buffer, strnlen(buffer, sizeof(buffer)));

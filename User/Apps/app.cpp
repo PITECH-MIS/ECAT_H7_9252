@@ -1,20 +1,6 @@
 #include "classes.hpp"
 #include "commands.hpp"
 
-// class ECATTask : public RTOSTask
-// {
-// public:
-//     void loop() final
-//     {
-//         taskENTER_CRITICAL();
-//         ethercat.Update();
-//         taskEXIT_CRITICAL();
-//         HAL_IWDG_Refresh(&hiwdg1);
-//         sleep(2);
-//     }
-// };
-// ECATTask ecatTask;
-
 void rx_pdo_payload_cb(char *payload, uint8_t len)
 {
     printf("Received PDO Payload: ");
@@ -60,34 +46,13 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     if(UART_8.OnIdleIRQ(huart, Size)) return;
 }
 
-void uart_1_rx_cb(uint16_t Size)
-{
-    arbiter.OnRxEvent(&UART_1, UART_1.rx_buffer, Size);
-}
-void uart_2_rx_cb(uint16_t Size)
-{
-    arbiter.OnRxEvent(&UART_2, UART_2.rx_buffer, Size);
-}
-void uart_3_rx_cb(uint16_t Size)
-{
-    arbiter.OnRxEvent(&UART_3, UART_3.rx_buffer, Size);
-}
-void uart_4_rx_cb(uint16_t Size)
-{
-    arbiter.OnRxEvent(&UART_4, UART_4.rx_buffer, Size);
-}
-void uart_6_rx_cb(uint16_t Size)
-{
-    arbiter.OnRxEvent(&UART_6, UART_6.rx_buffer, Size);
-}
-void uart_7_rx_cb(uint16_t Size)
-{
-    arbiter.OnRxEvent(&UART_7, UART_7.rx_buffer, Size);
-}
-void uart_8_rx_cb(uint16_t Size)
-{
-    arbiter.OnRxEvent(&UART_8, UART_8.rx_buffer, Size);
-}
+void uart_1_rx_cb(uint16_t Size) { arbiter.OnRxEvent(&UART_1, UART_1.rx_buffer, Size); }
+void uart_2_rx_cb(uint16_t Size) { arbiter.OnRxEvent(&UART_2, UART_2.rx_buffer, Size); }
+void uart_3_rx_cb(uint16_t Size) { arbiter.OnRxEvent(&UART_3, UART_3.rx_buffer, Size); }
+void uart_4_rx_cb(uint16_t Size) { arbiter.OnRxEvent(&UART_4, UART_4.rx_buffer, Size); }
+void uart_6_rx_cb(uint16_t Size) { arbiter.OnRxEvent(&UART_6, UART_6.rx_buffer, Size); }
+void uart_7_rx_cb(uint16_t Size) { arbiter.OnRxEvent(&UART_7, UART_7.rx_buffer, Size); }
+void uart_8_rx_cb(uint16_t Size) { arbiter.OnRxEvent(&UART_8, UART_8.rx_buffer, Size); }
 void mx_pdo_payload_cb(uint8_t x, uint8_t *payload, uint8_t len)
 {
     if(arbiter.protocols[x].IsAlive())
